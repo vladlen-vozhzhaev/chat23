@@ -31,7 +31,11 @@ public class Server {
                             while (true){
                                 response = currentUser.getIn().readUTF();
                                 if (response.equals("/onlineUsers")){
-                                    currentUser.getOos().writeObject(users);
+                                    ArrayList<String> usersName = new ArrayList<>();
+                                    for (User user: users) {
+                                        usersName.add(user.getUserName());
+                                    }
+                                    currentUser.getOos().writeObject(usersName);
                                 }else{
                                     String message = currentUser.getUserName()+": "+response;
                                     broadCastMessage(message);

@@ -2,12 +2,14 @@ package client;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Client {
+    static ArrayList<String> usersName = new ArrayList<>();
     public static void main(String[] args) {
         try {
-            Socket socket = new Socket("localhost", 9178);
+            Socket socket = new Socket("62.113.106.148", 9178);
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
             //DataInputStream in = new DataInputStream(socket.getInputStream());
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
@@ -19,8 +21,12 @@ public class Client {
                     try {
                         while (true){
                             Object object = ois.readObject();
-                            //System.out.println(object.getClass());
-                            System.out.println((String) object);
+                            if(object.getClass().equals(usersName.getClass())){
+                                usersName = (ArrayList<String>) object;
+                                System.out.println(usersName);
+                            }else{
+                                System.out.println((String) object);
+                            }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
