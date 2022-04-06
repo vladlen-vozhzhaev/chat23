@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class Server {
     static ArrayList<User> users = new ArrayList<>();
@@ -30,15 +31,25 @@ public class Server {
                             String response;
                             while (true){
                                 response = currentUser.getIn().readUTF();
+                                /* /tell Igor Hello */
+                                String[] responseArr = response.split(" ");
                                 if (response.equals("/onlineUsers")){
                                     ArrayList<String> usersName = new ArrayList<>();
                                     for (User user: users) {
                                         usersName.add(user.getUserName());
                                     }
                                     currentUser.getOos().writeObject(usersName);
-                                }else{
+                                }else if(responseArr[0].equals("/tell")){
+                                    String toUser = responseArr[1];
+                                    StringBuilder text = new StringBuilder();
+                                    for (int i = 2; i < responseArr.length; i++) {
+                                        text.append(responseArr[i]).append(" ");
+                                    }
+                                    broadCastMessage(text.toString());
+                                }
+                                else{
                                     String message = currentUser.getUserName()+": "+response;
-                                    broadCastMessage(message);
+                                    broadCastMessage(message, currentUser.getUuid());
                                     System.out.println(response);
                                 }
 
@@ -55,6 +66,16 @@ public class Server {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+    public static void broadCastMessage(String message, UUID currentUserUUID){
+        for (User user : users) {
+            try {
+                if(user.getUuid().toString().equals(currentUserUUID.toString())) continue;
+                user.getOos().writeObject(message);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         }
     }
     public static void broadCastMessage(String message){
