@@ -23,6 +23,13 @@ public class Server {
                     @Override
                     public void run() {
                         try {
+                            ArrayList<String> usersName = new ArrayList<>();
+                            for (User user: users) {
+                                if(user.getUserName() == null) continue;
+                                usersName.add(user.getUserName());
+                            }
+                            currentUser.getOos().writeObject(usersName);
+
                             currentUser.getOos().writeObject("SERVER: Введите имя");
                             String userName = currentUser.getIn().readUTF();
                             currentUser.setUserName(userName);
@@ -34,7 +41,7 @@ public class Server {
                                 /* /tell Igor Hello */
                                 String[] responseArr = response.split(" ");
                                 if (response.equals("/onlineUsers")){
-                                    ArrayList<String> usersName = new ArrayList<>();
+                                    usersName = new ArrayList<>();
                                     for (User user: users) {
                                         usersName.add(user.getUserName());
                                     }
@@ -45,7 +52,7 @@ public class Server {
                                     for (int i = 2; i < responseArr.length; i++) {
                                         text.append(responseArr[i]).append(" ");
                                     }
-                                    broadCastMessage(text.toString());
+                                    sendPrivateMessage(text.toString(), toUser);
                                 }
                                 else{
                                     String message = currentUser.getUserName()+": "+response;
@@ -85,6 +92,18 @@ public class Server {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
+        }
+    }
+    public static void sendPrivateMessage(String message, String toUser){
+        for(User user:users){
+            try {
+                if(user.getUserName().equals(toUser)){
+                    user.getOos().writeObject(message);
+                }
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+
         }
     }
 }
