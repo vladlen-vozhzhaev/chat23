@@ -5,24 +5,71 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.UUID;
 
 public class Server {
     static ArrayList<User> users = new ArrayList<>();
+    static String db_url = "jdbc:mysql://vladle43.beget.tech/vladle43_android";
+    static String db_login = "vladle43_android";
+    static String db_pass = "%Li30LRo";
     public static void main(String[] args) {
         try {
             System.out.println("Сервер запущен");
+            Class.forName("com.mysql.cj.jdbc.Driver").getDeclaredConstructor().newInstance();
             ServerSocket serverSocket = new ServerSocket(9178);
             while (true){
                 Socket socket = serverSocket.accept(); // Ожидаем подключения клиента
                 System.out.println("Клиент подключился");
-                User currentUser = new User(socket);
-                users.add(currentUser);
+                User currentUser = new User(socket); // Создаём объект текущего подключившегося пользователя
+                users.add(currentUser); // Добавляем его в коллекцию
                 Thread thread = new Thread(new Runnable() {
                     @Override
                     public void run() {
                         try {
+                            String header = currentUser.getIn().readUTF();
+                            String target = header.split("//")[0];
+                            System.out.println(target);
+                            if(target.equals("registration")){
+                                String[] headers = header.split("//");
+                                String name = headers[1];
+                                String phone = headers[2];
+                                String pass = headers[3];
+                                String uuid = headers[4];
+                                Connection connection = DriverManager.getConnection(db_url, db_login, db_pass);
+                                Statement statement = connection.createStatement();
+                                ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE `phone`='"+phone+"'");
+                                if (resultSet.next()) {
+                                    currentUser.getOos().writeObject("user_exist");
+                                }else{
+                                    connection.close();
+                                    connection = DriverManager.getConnection(db_url, db_login, db_pass);
+                                    statement = connection.createStatement();
+                                    String sql = "INSERT INTO `users`(`name`, `phone`, `pass`, `uuid`) VALUES ('"+name+"', '"+phone+"','"+pass+"', '"+uuid+"')";
+                                    statement.executeUpdate(sql);
+                                    connection.close();
+                                    currentUser.getOos().writeObject("success");
+                                }
+                                users.remove(currentUser);
+                                return;
+                            }else if(target.equals("auth")){
+                                String[] headers = header.split("//");
+                                String phone = headers[1];
+                                String pass = headers[2];
+                                Connection connection = DriverManager.getConnection(db_url, db_login, db_pass);
+                                Statement statement = connection.createStatement();
+                                ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE `phone`='"+phone+"' AND `pass`='"+pass+"'");
+                                if(resultSet.next()){
+                                    currentUser.getOos().writeObject("success");
+                                }else{
+                                    currentUser.getOos().writeObject("error");
+                                }
+                            }
+
                             ArrayList<String> usersName = new ArrayList<>();
                             for (User user: users) {
                                 if(user.getUserName() == null) continue;
@@ -61,7 +108,7 @@ public class Server {
                                 }
 
                             }
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             users.remove(currentUser);
                             String message = currentUser.getUserName()+" отключился";
                             System.out.println(message);
