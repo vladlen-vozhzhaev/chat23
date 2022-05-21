@@ -64,6 +64,22 @@ public class Server {
                                 Statement statement = connection.createStatement();
                                 ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE `phone`='"+phone+"' AND `pass`='"+pass+"'");
                                 if(resultSet.next()){
+                                    String token = UUID.randomUUID().toString();
+                                    int id = resultSet.getInt("id"); // Читаем id из ответа от БД
+                                    statement.executeQuery("UPDATE `users` SET `token` = '"+token+"' WHERE `id` = "+id);
+                                    String name = resultSet.getString("name");
+                                    String userUuid = resultSet.getString("uuid");
+                                    currentUser.getOos().writeObject(name+"//"+userUuid+"//"+token);
+                                    connection.close();
+                                }else{
+                                    currentUser.getOos().writeObject("error");
+                                }
+                            }else if(target.equals("token")){
+                                String token = header.split("//")[1];
+                                Connection connection = DriverManager.getConnection(db_url, db_login, db_pass);
+                                Statement statement = connection.createStatement();
+                                ResultSet resultSet = statement.executeQuery("SELECT id FROM users WHERE token='"+token+"'");
+                                if(resultSet.next()){
                                     currentUser.getOos().writeObject("success");
                                 }else{
                                     currentUser.getOos().writeObject("error");
